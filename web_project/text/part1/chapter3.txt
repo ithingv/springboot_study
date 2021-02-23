@@ -1,0 +1,250 @@
+스프링 MVC와 Thymeleaf
+
+타임리프의 사용 이유
+
+JSP와 유사하게 ${}를 별도의 처리 없이 사용할 수 있다.
+Model에 담긴 객체를 화면에서 js로 처리하기 편리
+연산이나 포맷과 관련된 기능을 추가적인 개발 없이 지원한다.
+개발 도구를 이용할 때 .html 파일로 생성하는데 문제가 없고 별도의 확장자를 이용하지 않는다.
+
+학습 내용
+
+
+spring.thymeleaf.cache=false
+서버에서 만들어진 결과를 브라우저로 전송할때 이미 만들어진 결과를 서버에 계속 보관할 것인지 설정이다.
+
+
+1. Thymeleaf를 이용한 화면 출력, 반복, 제어 처리
+
+1-1 templates 폴더에 sample 생성
+th:text="${''}"
+sample/ex1.html
+
+타임리프에서 반복은 th:each = "변수: ${목록}"
+
+@Data
+getter/setter, toString(), hashCode()를 자동으로 생성한다.
+
+@RestController와 @Controller의 차이 파악
+
+@GetMapping의 value값에 {}를 주면 하나 이상의 url을 지정할 수 있다.
+
+[[${dto}]] - <li>태그의 안쪽의 [[]]는 인라인 표현식으로 별도의 태그 속성으로
+지정하기 않고 사용하고자 할 때 사용
+
+반복문의 상태 객체
+
+반복문에는 부가적으로 사용할 수 있는 상태 객체라는 것이 있다.
+상태 객체를 이용하면 순번이나 인덱스 번호, 홀수/짝수 등을 지정할 수 있다.
+
+<ul>
+        <li th:each="dto, state : ${list}">
+            [[${state.index}]] --------- [[${dto}]]
+        </li>
+</ul>
+
+제어문 처리
+th:if ~unless, 삼항 연산자 스타일 사용 가능
+-------
+th:each="dto, state: ${list}" th:if="${dto.sno % 5 == 0}">
+---------
+sno가 5의 배수이면 sno을 출력하고 그렇지 않으면 first를 출력하라
+<ul>
+    <li th:each="dto, state : ${list}">
+        <span th:if="${dto.sno % 5 == 0}" th:text="${'-------------------' + dto.sno}"> </span>
+        <span th:unless="${dto.sno % 5 == 0}" th:text="${dto.first}"></span>
+    </li>
+</ul>
+--------
+삼항연산자
+    <ul>
+        <li th:each="dto, state : ${list}" th:text="${dto.sno % 5 == 0}? ${'----------' + dto.sno} : ${dto.first}">
+        </li>
+    </ul>
+
+특정 조건을 만족한 경우에만 css 적용
+5의 배수에 폰트 칼라가 빨강 아니면 파랑 적용
+<style>
+    .target1{
+        color: red;
+    }
+    .target2{
+        color: blue;
+    }
+</style>
+<body>
+<ul>
+    <li th:each="dto, state : ${list}"
+        th:class="${dto.sno % 5 == 0} ? 'target1' : 'target2'"
+        th:text="${dto}"></li>
+</ul>
+
+---------------
+inline 속성
+
+주로 js 처리에 유용하다.
+
+th:inline="javacript"
+
+리다이렉트로 전송된 dto는 JSON 포맷의 문자열이 되었다.
+javascript 객체로 변환해서 사용하려면 JSON.parse("\" + dto + "\");
+----------------
+
+th:block
+
+Thymeleaf의 block은 별도의 태그가 필요하지 않기 때문에
+반드시 태그에 붙어서 th:text나 th:value등을 써야 하는 제약이 없다.
+
+<ul>
+    <th:block th:each="dto : ${list}">
+        <li th:text="${dto.sno % 5 == 0} ? ${dto.sno} : ${dto.first}"></li>
+    </th:block>
+</ul>
+
+실제 화면에서는 html로 처리되지 않기 떄문에 위와 같이 루프 등을 별도로 처리하는 용도로 많이 사용된다.
+
+--------------------------
+
+링크 처리
+
+Thymeleaf의 링크는 @{}를 이용해서 사용한다.
+파라미터를 전달해야 하는 상황에서는 좀 더 가독성 좋은 코드를 만들 수 있다.
+
+<body>
+    <li th:each="dto : ${list}">
+        <a th:href="@{/sample/exView(sno=${dto.sno})}">[[${dto}]]</a>
+    </li>
+</body>
+
+SampleDto(sno=1, first=First..1, last=Last..1, regTime=2021-02-23T22:40:25.928723200)
+
+sno를 path로 이용하고 싶다면
+
+<body>
+    <li th:each="dto : ${list}">
+        <a th:href="@{/sample/exView/{sno}(sno=${dto.sno})}">[[${dto}]]</a>
+    </li>
+</body>
+
+
+<a href="/sample/exView/1
+<a href="/sample/exView/2
+<a href="/sample/exView/3
+<a href="/sample/exView/4
+
+2. 기본 객체를 이용해서 날짜, 시간 처리
+
+Thymeleaf에는 내부적으로 여러 종류의 기본 객체를 지원한다.
+기본 객체는 문자나 숫자, 웹에서 사용되는 파라미터, request, response, session
+
+#numbers, #dates
+<ul>
+    <li th:each="dto : ${list}">
+        [[${#numbers.formatInteger(dto.sno,5)}]]
+    </li>
+</ul>
+
+LocalDateTime에 대해서는 상당히 복잡하게 처리해야되므로
+외부 라이브러리
+https://github.com/thymeleaf/thymeleaf-extras-java8time
+
+	compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-java8time'
+
+#temporals라는 객체를 이용해서 format()으로 처리한다.
+<ul>
+    <li th:each="dto : ${list}">
+        [[${dto.sno}]] --- [[${#temporals.format(dto.regTime, 'yyyy/MM/dd')}]]
+    </li>
+</ul>
+
+1 --- 2021/02/23
+2 --- 2021/02/23
+3 --- 2021/02/23
+4 --- 2021/02/23
+5 --- 2021/02/23
+6 --- 2021/02/23
+
+3. 레이아웃 기능을 활용하여 템플릿 구성하기
+
+-   JSP의 include와 같이 특정 부분을 외부 혹은 내부에서 가져와서 포함하는 형태
+-   특정한 부분을 파라미터로 전달해서 내용에 포함하는 형태
+
+th:replace
+th:insert 특정한 부분을 다른 내용으로 변경할 수 있음
+
+    <div th:fragment="part1">
+        <h2>part1</h2>
+    </div>
+    <div th:fragment="part2">
+        <h2>part2</h2>
+    </div>
+    <div th:fragment="part3">
+        <h2>part3</h2>
+    </div>
+
+    <div th:replace="~{/fragments/fragment1 :: part1}"></div>
+    <h1>Layout 1 -2 </h1>
+    <div th:insert="~{/fragments/fragment1 :: part2}"></div>
+    <h1>Layout 1 -3 </h1>
+    <div th:replace="~{/fragments/fragment1 :: part3}"></div>
+
+th:insert를 이용하는 경우에는 <div> 태그 내에 다시 <div> 태그가 생성된다.
+
+th:replace를 이용할 때 :: 뒤에는
+1.fragment의 이름을 지정하거나
+2.css의 #id와 같은 선택자
+3. :: 이하를 생략하면 해당 파일의 전체 내용을 가져올 수도 있다.
+
+파일 전체를 사용하는 예제의 실습
+
+<div th:block th:replace="~{fragments/fragment2}"></div>
+
+파라미터 방식의 처리
+
+기존의 JSP와 달리 타임리프를 이용하면 특정한 태그를 파라미터 처럼 전달해서
+다른 th:fragment에서 사용할 수 있다. SampleController의 exLayout1()을
+재사용하기 위해서 @GetMapping의 값을 배열로 조금 수정
+
+<div th:fragment= "target(first, second)">
+    <style>
+        .c1{
+            background-color: red;
+        }
+        .c2{
+            background-color: blue;
+        }
+    </style>
+
+    <div class="c1">
+        <th:block th:replace="${first}"></th:block>
+    </div>
+    <div class="c2">
+        <th:block th:replace="${second}"></th:block>
+    </div>
+</div>
+
+exLayout2
+
+    <th:block th:replace="~{/fragments/fragment3:: target(~{this::#ulFirst}, ~{this::#ulSecond})}">
+
+    <ul id="ulFirst">
+        <li>aa</li>
+        <li>bb</li>
+        <li>cc</li>
+    </ul>
+
+    <ul id="ulSecond">
+        <li>aa</li>
+        <li>bb</li>
+        <li>cc</li>
+    </ul>
+    </th:block>
+
+ this: #ulFirst - this는 현재 페이지를 의미할 떄 사용하는데 생략 가능하다
+
+  레이아웃 템플릿 만들기
+
+  파라미터로 필요한 영역을 전달해서 처리할 수 있다면 레이아웃 전체를 하나의 페이지로 구성하고,
+  필요한 부분을 파라미터로 전달하는 방식으로 공통의 레이아웃을 사용할 수 있다는 의미가 된다.
+
+  templates/layout/layout1
